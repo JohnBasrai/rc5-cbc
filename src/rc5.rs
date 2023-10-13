@@ -27,9 +27,9 @@ pub trait Word:
 
 impl Word for u8
 {
-    const ZERO: Self = 0u8;
-    const P: Self = 0u8;
-    const Q: Self = 0u8;
+    const ZERO: Self = 0_u8;
+    const P: Self = 0_u8;
+    const Q: Self = 0_u8;
 
     const BYTES: usize = 1usize;
 
@@ -40,9 +40,9 @@ impl Word for u8
 
 impl Word for u32
 {
-    const ZERO: Self = 0u32;
-    const P: Self = 0xb7e15163u32;
-    const Q: Self = 0x9e3779b9u32;
+    const ZERO: Self = 0_u32;
+    const P: Self = 0xb7e15163_u32;
+    const Q: Self = 0x9e3779b9_u32;
 
     const BYTES: usize = 4usize;
 
@@ -244,14 +244,14 @@ mod tests
             0x00u8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00,
         ];
-        let pt = [0x00000000u32, 0x00000000];
+        let pt = [0x00000000_u32, 0x00000000];
         let rounds = 12;
 
         let ct = encrypt(pt, &key, rounds);
-        assert_eq!(ct, [0xEEDBA521u32, 0x6D8F4B15]);
+        assert_eq!(ct, [0xEEDBA521_u32, 0x6D8F4B15]);
 
         let pt = decrypt(ct, &key, rounds);
-        assert_eq!(pt, [0x00000000u32, 0x00000000]);
+        assert_eq!(pt, [0x00000000_u32, 0x00000000]);
     }
 
     #[test]
@@ -261,14 +261,14 @@ mod tests
             0x91, 0x5F, 0x46, 0x19, 0xBE, 0x41, 0xB2, 0x51, 0x63, 0x55, 0xA5, 0x01, 0x10, 0xA9,
             0xCE, 0x91,
         ];
-        let pt = [0xEEDBA521u32, 0x6D8F4B15];
+        let pt = [0xEEDBA521_u32, 0x6D8F4B15];
         let rounds = 12;
 
         let ct = encrypt(pt, &key, rounds);
-        assert_eq!(ct, [0xAC13C0F7u32, 0x52892B5B]);
+        assert_eq!(ct, [0xAC13C0F7_u32, 0x52892B5B]);
 
         let pt = decrypt(ct, &key, rounds);
-        assert_eq!(pt, [0xEEDBA521u32, 0x6D8F4B15]);
+        assert_eq!(pt, [0xEEDBA521_u32, 0x6D8F4B15]);
     }
 
     #[test]
@@ -278,14 +278,14 @@ mod tests
             0x78, 0x33, 0x48, 0xE7, 0x5A, 0xEB, 0x0F, 0x2F, 0xD7, 0xB1, 0x69, 0xBB, 0x8D, 0xC1,
             0x67, 0x87,
         ];
-        let pt = [0xAC13C0F7u32, 0x52892B5B];
+        let pt = [0xAC13C0F7_u32, 0x52892B5B];
         let rounds = 12;
 
         let ct = encrypt(pt, &key, rounds);
-        assert_eq!(ct, [0xB7B3422Fu32, 0x92FC6903]);
+        assert_eq!(ct, [0xB7B3422F_u32, 0x92FC6903]);
 
         let pt = decrypt(ct, &key, rounds);
-        assert_eq!(pt, [0xAC13C0F7u32, 0x52892B5B]);
+        assert_eq!(pt, [0xAC13C0F7_u32, 0x52892B5B]);
     }
 
     #[test]
@@ -295,14 +295,14 @@ mod tests
             0xDC, 0x49, 0xDB, 0x13, 0x75, 0xA5, 0x58, 0x4F, 0x64, 0x85, 0xB4, 0x13, 0xB5, 0xF1,
             0x2B, 0xAF,
         ];
-        let pt = [0xB7B3422Fu32, 0x92FC6903];
+        let pt = [0xB7B3422F_u32, 0x92FC6903];
         let rounds = 12;
 
         let ct = encrypt(pt, &key, rounds);
-        assert_eq!(ct, [0xB278C165u32, 0xCC97D184]);
+        assert_eq!(ct, [0xB278C165_u32, 0xCC97D184]);
 
         let pt = decrypt(ct, &key, rounds);
-        assert_eq!(pt, [0xB7B3422Fu32, 0x92FC6903]);
+        assert_eq!(pt, [0xB7B3422F_u32, 0x92FC6903]);
     }
 
     #[test]
@@ -312,13 +312,13 @@ mod tests
             0x52, 0x69, 0xF1, 0x49, 0xD4, 0x1B, 0xA0, 0x15, 0x24, 0x97, 0x57, 0x4D, 0x7F, 0x15,
             0x31, 0x25,
         ];
-        let pt = [0xB278C165u32, 0xCC97D184];
+        let pt = [0xB278C165_u32, 0xCC97D184];
         let rounds = 12;
 
         let ct = encrypt(pt, &key, rounds);
-        assert_eq!(ct, [0x15E444EBu32, 0x249831DA]);
+        assert_eq!(ct, [0x15E444EB_u32, 0x249831DA]);
 
         let pt = decrypt(ct, &key, rounds);
-        assert_eq!(pt, [0xB278C165u32, 0xCC97D184]);
+        assert_eq!(pt, [0xB278C165_u32, 0xCC97D184]);
     }
 }

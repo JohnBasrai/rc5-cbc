@@ -1,45 +1,100 @@
-/*
-  cargo run rc5-cbc -- [--enc/--dec] <input-path> <output-path> <secret-key>
-*/
-
-use rc5_course::{decrypt, encrypt, Word};
-use std::env;
+use clap::{Parser, Subcommand};
+use rc5::{decrypt, encrypt, Word};
 use std::fs;
+use std::io::{self, Write, BufRead};
+use std::path::PathBuf;
 
-enum Actions
+use anyhow::{anyhow, Result};
+mod rc5;
+
+// Usage: rc5-cbc --input <IN_PATH> --output <OUT_PATH> <COMMAND>
+
+#[derive(Debug, Parser)]
+#[command(version, about, long_about = None)]
+/// RC5 Symmetric Block Cipher in Rust
+///
+/// RC5 is a symmetric key block encryption algorithm designed by Ron Rivest in 1994. It
+/// is notable for being simple, fast (on account of using only primitive computer
+/// operations like XOR, shift, etc.)  and consumes less memory.  Making Rust an idle
+/// language to implement it in.
+struct Args
 {
+    #[command(subcommand)]
+    command: Command,
+
+    /// Input plaintext file
+    #[arg(short, long, value_name = "IN_PATH")]
+    input: PathBuf,
+
+    /// Output ciphertext file
+    #[arg(short, long, value_name = "OUT_PATH")]
+    output: PathBuf,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command
+{
+    /// Encrypt a file
     Encrypt,
+
+    /// Decrypt a file
     Decrypt,
 }
 
-fn main()
+pub fn main() -> Result<()>
 {
-    let args: Vec<String> = env::args().collect();
-
-    let option = match args[3].as_str()
-    {
-        "--enc" => Actions::Encrypt,
-        "--dec" => Actions::Decrypt,
-        _ => panic!("Bad argument as action, provide [--enc/--dec]"),
-    };
-
-    let input_path = args[4].as_str();
-    let output_path = args[5].as_str();
-    let key = Vec::from(args[6].as_bytes());
-    let rounds = 12;
-
-    let input = fs::read(input_path).expect(&format!("File {} couldn't be read", input_path));
-
-    let output_data = match option
-    {
-        Actions::Encrypt => encrypt_cbc(&input, &key, rounds),
-        Actions::Decrypt => decrypt_cbc(&input, &key, rounds),
-    };
-
-    fs::write(output_path, output_data);
+    let args = Args::parse();
+    args.command.execute(&args.input, &args.output)
 }
 
-fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Vec<u8>
+impl Command
+{
+    fn execute(&self, input_path: &std::path::Path, output_path: &std::path::Path) -> Result<()>
+    {
+        let mut line = String::new();
+        let stdin = io::stdin();
+
+        print!("\nPassphrase: ");
+        let _ = io::stdout().flush();
+        let _ = match stdin.lock().read_line(&mut line)
+        {
+            Ok(key) => key,
+            Err(err) =>
+            {
+                return Err(anyhow!("Could not read line:{}", err));
+            }
+        };
+        let key = Vec::from(line.as_bytes());
+        let rounds = 12;
+
+        let input = match fs::read(input_path)
+        {
+            Ok(inp) => inp,
+            Err(err) =>
+            {
+                return Err(anyhow!("File {:?} couldn't be read:{}", input_path, err));
+            }
+        };
+        let output = match self
+        {
+            Self::Encrypt => encrypt_cbc(&input, &key, rounds)?,
+            Self::Decrypt => decrypt_cbc(&input, &key, rounds)?,
+        };
+
+        let _ = match fs::write(output_path, &output)
+        {
+            Ok(_) =>
+            {}
+            Err(err) =>
+            {
+                return Err(anyhow!("Error writing output file: {}", err));
+            }
+        };
+        Ok(())
+    }
+}
+
+fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>>
 {
     let mut plaintext = plaintext.clone();
 
@@ -55,16 +110,11 @@ fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Vec<u8>
 
     for i in 0 .. iters
     {
-        let a = u32::from_be_bytes(
-            plaintext[i * chunk .. i * chunk + word_bytes]
-                .try_into()
-                .unwrap(),
-        );
-        let b = u32::from_be_bytes(
-            plaintext[i * chunk + word_bytes .. i * chunk + 2 * word_bytes]
-                .try_into()
-                .unwrap(),
-        );
+        let a = plaintext[i * chunk .. i * chunk + word_bytes].try_into()?;
+        let a = u32::from_be_bytes(a);
+
+        let b = plaintext[i * chunk + word_bytes .. i * chunk + 2 * word_bytes].try_into()?;
+        let b = u32::from_be_bytes(b);
 
         let pt = match i
         {
@@ -78,10 +128,10 @@ fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Vec<u8>
         output.extend(ct[1].to_be_bytes());
     }
 
-    output
+    Ok(output)
 }
 
-fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Vec<u8>
+fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>>
 {
     let ct_len = ciphertext.len();
     let word_bytes = u32::BYTES;
@@ -93,16 +143,11 @@ fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Vec<u8>
 
     for i in 0 .. iters
     {
-        let a = u32::from_be_bytes(
-            ciphertext[i * chunk .. i * chunk + word_bytes]
-                .try_into()
-                .unwrap(),
-        );
-        let b = u32::from_be_bytes(
-            ciphertext[i * chunk + word_bytes .. i * chunk + 2 * word_bytes]
-                .try_into()
-                .unwrap(),
-        );
+        let a = ciphertext[i * chunk .. i * chunk + word_bytes].try_into()?;
+        let a = u32::from_be_bytes(a);
+
+        let b = ciphertext[i * chunk + word_bytes .. i * chunk + 2 * word_bytes].try_into()?;
+        let b = u32::from_be_bytes(b);
 
         let ct = [a, b];
 
@@ -120,5 +165,5 @@ fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Vec<u8>
         output.extend(pt[1].to_be_bytes());
     }
 
-    output
+    Ok(output)
 }
