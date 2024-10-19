@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use rc5::{decrypt, encrypt, Word};
 use std::fs;
-use std::io::{self, Write, BufRead};
+use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
@@ -17,8 +17,7 @@ mod rc5;
 /// is notable for being simple, fast (on account of using only primitive computer
 /// operations like XOR, shift, etc.)  and consumes less memory.  Making Rust an idle
 /// language to implement it in.
-struct Args
-{
+struct Args {
     #[command(subcommand)]
     command: Command,
 
@@ -32,8 +31,7 @@ struct Args
 }
 
 #[derive(Debug, Subcommand)]
-enum Command
-{
+enum Command {
     /// Encrypt a file
     Encrypt,
 
@@ -41,52 +39,41 @@ enum Command
     Decrypt,
 }
 
-pub fn main() -> Result<()>
-{
+pub fn main() -> Result<()> {
     let args = Args::parse();
     args.command.execute(&args.input, &args.output)
 }
 
-impl Command
-{
-    fn execute(&self, input_path: &std::path::Path, output_path: &std::path::Path) -> Result<()>
-    {
+impl Command {
+    fn execute(&self, input_path: &std::path::Path, output_path: &std::path::Path) -> Result<()> {
         let mut line = String::new();
         let stdin = io::stdin();
 
         print!("\nPassphrase: ");
         let _ = io::stdout().flush();
-        let _ = match stdin.lock().read_line(&mut line)
-        {
+        let _ = match stdin.lock().read_line(&mut line) {
             Ok(key) => key,
-            Err(err) =>
-            {
+            Err(err) => {
                 return Err(anyhow!("Could not read line:{}", err));
             }
         };
         let key = Vec::from(line.as_bytes());
         let rounds = 12;
 
-        let input = match fs::read(input_path)
-        {
+        let input = match fs::read(input_path) {
             Ok(inp) => inp,
-            Err(err) =>
-            {
+            Err(err) => {
                 return Err(anyhow!("File {:?} couldn't be read:{}", input_path, err));
             }
         };
-        let output = match self
-        {
+        let output = match self {
             Self::Encrypt => encrypt_cbc(&input, &key, rounds)?,
             Self::Decrypt => decrypt_cbc(&input, &key, rounds)?,
         };
 
-        let _ = match fs::write(output_path, &output)
-        {
-            Ok(_) =>
-            {}
-            Err(err) =>
-            {
+        let _ = match fs::write(output_path, &output) {
+            Ok(_) => {}
+            Err(err) => {
                 return Err(anyhow!("Error writing output file: {}", err));
             }
         };
@@ -94,8 +81,7 @@ impl Command
     }
 }
 
-fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>>
-{
+fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>> {
     let mut plaintext = plaintext.clone();
 
     let pt_len = plaintext.len();
@@ -108,16 +94,14 @@ fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<
     let mut output = Vec::<u8>::new();
     let mut ct = [0u32; 2];
 
-    for i in 0 .. iters
-    {
-        let a = plaintext[i * chunk .. i * chunk + word_bytes].try_into()?;
+    for i in 0..iters {
+        let a = plaintext[i * chunk..i * chunk + word_bytes].try_into()?;
         let a = u32::from_be_bytes(a);
 
-        let b = plaintext[i * chunk + word_bytes .. i * chunk + 2 * word_bytes].try_into()?;
+        let b = plaintext[i * chunk + word_bytes..i * chunk + 2 * word_bytes].try_into()?;
         let b = u32::from_be_bytes(b);
 
-        let pt = match i
-        {
+        let pt = match i {
             0 => [a, b],
             _ => [a ^ ct[0], b ^ ct[1]],
         };
@@ -131,8 +115,7 @@ fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<
     Ok(output)
 }
 
-fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>>
-{
+fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>> {
     let ct_len = ciphertext.len();
     let word_bytes = u32::BYTES;
     let chunk = 2 * word_bytes;
@@ -141,20 +124,18 @@ fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec
     let mut output = Vec::<u8>::new();
     let mut ct_prev = [0u32; 2];
 
-    for i in 0 .. iters
-    {
-        let a = ciphertext[i * chunk .. i * chunk + word_bytes].try_into()?;
+    for i in 0..iters {
+        let a = ciphertext[i * chunk..i * chunk + word_bytes].try_into()?;
         let a = u32::from_be_bytes(a);
 
-        let b = ciphertext[i * chunk + word_bytes .. i * chunk + 2 * word_bytes].try_into()?;
+        let b = ciphertext[i * chunk + word_bytes..i * chunk + 2 * word_bytes].try_into()?;
         let b = u32::from_be_bytes(b);
 
         let ct = [a, b];
 
         let pt = decrypt(ct, key, rounds);
 
-        let pt = match i
-        {
+        let pt = match i {
             0 => pt,
             _ => [pt[0] ^ ct_prev[0], pt[1] ^ ct_prev[1]],
         };
