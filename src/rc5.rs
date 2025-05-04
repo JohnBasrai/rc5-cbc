@@ -65,7 +65,7 @@ impl Word for u32 {
 //     A = ((A ^ B) << B) + S[2 * i]
 //     B = ((B ^ A) << A) + S[2 * i + 1]
 //
-pub fn encrypt<W: Word>(pt: [W; 2], key: &Vec<u8>, rounds: usize) -> [W; 2] {
+pub fn encrypt<W: Word>(pt: [W; 2], key: &[u8], rounds: usize) -> [W; 2] {
     let s = expand_key(key, rounds);
 
     let [mut a, mut b] = pt;
@@ -87,7 +87,7 @@ pub fn encrypt<W: Word>(pt: [W; 2], key: &Vec<u8>, rounds: usize) -> [W; 2] {
 // B = B - S[1]
 // A = A - S[0]
 //
-pub fn decrypt<W: Word>(ct: [W; 2], key: &Vec<u8>, rounds: usize) -> [W; 2] {
+pub fn decrypt<W: Word>(ct: [W; 2], key: &[u8], rounds: usize) -> [W; 2] {
     let s = expand_key(key, rounds);
 
     let [mut a, mut b] = ct;
@@ -128,13 +128,13 @@ pub fn decrypt<W: Word>(ct: [W; 2], key: &Vec<u8>, rounds: usize) -> [W; 2] {
 //
 // input: key: Vec<u8>
 // output: S: Vec<W>
-pub fn expand_key<W: Word>(key: &Vec<u8>, rounds: usize) -> Vec<W> {
+pub fn expand_key<W: Word>(key: &[u8], rounds: usize) -> Vec<W> {
     let w = W::BYTES * 8;
     let b = key.len();
     let t = 2 * (rounds + 1);
 
     // ceil(8*b/w) = (8 * b + (w - 1)) / w
-    let tmp = (8 * b + (w - 1)) / w;
+    let tmp = (8 * b).div_ceil(w);
     let c = std::cmp::max(1, tmp);
     let mut key_l = vec![W::ZERO; c];
 

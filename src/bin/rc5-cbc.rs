@@ -1,13 +1,12 @@
 use clap::{Parser, Subcommand};
-use rc5::{decrypt, encrypt, Word};
+use rc5_course::rc5::{decrypt, encrypt, Word};
 use std::fs;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
-mod rc5;
 
-// Usage: rc5-cbc --input <IN_PATH> --output <OUT_PATH> <COMMAND>
+// Usage: cli --input <IN_PATH> --output <OUT_PATH> <COMMAND>
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None)]
@@ -71,7 +70,7 @@ impl Command {
             Self::Decrypt => decrypt_cbc(&input, &key, rounds)?,
         };
 
-        let _ = match fs::write(output_path, &output) {
+        match fs::write(output_path, &output) {
             Ok(_) => {}
             Err(err) => {
                 return Err(anyhow!("Error writing output file: {}", err));
@@ -81,14 +80,15 @@ impl Command {
     }
 }
 
-fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>> {
-    let mut plaintext = plaintext.clone();
+fn encrypt_cbc(plaintext: &[u8], key: &[u8], rounds: usize) -> Result<Vec<u8>> {
+    // ---
+    let mut plaintext: Vec<u8> = plaintext.to_vec();
 
     let pt_len = plaintext.len();
     let word_bytes = u32::BYTES;
     let chunk = 2 * word_bytes;
 
-    let iters = (pt_len + (chunk - 1)) / chunk;
+    let iters = pt_len.div_ceil(chunk);
     plaintext.extend(vec![0u8; iters * chunk - pt_len]);
 
     let mut output = Vec::<u8>::new();
@@ -115,11 +115,12 @@ fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<
     Ok(output)
 }
 
-fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec<u8>> {
+fn decrypt_cbc(ciphertext: &[u8], key: &[u8], rounds: usize) -> Result<Vec<u8>> {
+    // ---
     let ct_len = ciphertext.len();
     let word_bytes = u32::BYTES;
     let chunk = 2 * word_bytes;
-    let iters = (ct_len + (chunk - 1)) / chunk;
+    let iters = ct_len.div_ceil(chunk);
 
     let mut output = Vec::<u8>::new();
     let mut ct_prev = [0u32; 2];
@@ -144,6 +145,11 @@ fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, rounds: usize) -> Result<Vec
 
         output.extend(pt[0].to_be_bytes());
         output.extend(pt[1].to_be_bytes());
+    }
+
+    // ── trim the zero-bytes we added in encrypt_cbc ──
+    while output.last() == Some(&0u8) {
+        output.pop();
     }
 
     Ok(output)
