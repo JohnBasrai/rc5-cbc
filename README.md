@@ -8,10 +8,9 @@ It is notable for being simple and fast (it uses only primitive operations such 
 ## Building the library & CLI
 
 ```console
-# build everything in debug mode
-$ cargo build
+# build an optimized release binary
+$ cargo build --release
 ```
-
 The CLI lives in `src/bin/rc5-cbc.rs` and is built automatically as the `rc5-cbc` binary.
 
 ---
@@ -21,16 +20,14 @@ The CLI lives in `src/bin/rc5-cbc.rs` and is built automatically as the `rc5-cbc
 ### Encrypt
 
 ```console
-$ cargo run --release --bin rc5-cbc -- \
-    --input plain.txt --output secret.rc5 encrypt
+$ cargo run --release --bin rc5-cbc -- --input plain.txt --output secret.rc5 encrypt
 Passphrase: ********
 ```
 
 ### Decrypt
 
 ```console
-$ cargo run --release --bin rc5-cbc -- \
-    --input secret.rc5 --output recovered.txt decrypt
+$ cargo run --release --bin rc5-cbc -- --input secret.rc5 --output recovered.txt decrypt
 Passphrase: ********
 ```
 
