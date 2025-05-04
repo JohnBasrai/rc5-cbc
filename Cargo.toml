@@ -1,15 +1,18 @@
 [package]
 name = "rc5-course"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.75"
+anyhow = "1"
 clap = { version = "4", features = ["derive"] }
-num = "0.4.0"
+num = "0.4"
 
-[[bin]]
-name = "rc5-cbc"
-path = "./src/rc5-cbc.rs"
+[dev-dependencies]
+proptest    = "1"
+rand        = "0"
+assert_cmd  = "2"
+predicates  = "3"
+tempfile    = "3"
