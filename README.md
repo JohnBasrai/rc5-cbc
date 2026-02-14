@@ -20,19 +20,17 @@ The CLI lives in `src/bin/rc5-cbc.rs` and is built automatically as the `rc5-cbc
 ### Encrypt
 
 ```console
-$ cargo run --release --bin rc5-cbc -- --input plain.txt --output secret.rc5 encrypt
+# replace <PLAINTEXT> with any file you want to protect
+$ cargo run --release --bin rc5-cbc -- --input <PLAINTEXT> --output ciphertext.rc5 encrypt
 Passphrase: ********
 ```
 
 ### Decrypt
 
 ```console
-$ cargo run --release --bin rc5-cbc -- --input secret.rc5 --output recovered.txt decrypt
+$ cargo run --release --bin rc5-cbc -- --input ciphertext.rc5 --output <DECRYPTED_OUT> decrypt
 Passphrase: ********
 ```
-
----
-
 ## Running tests & lints
 
 ```console
